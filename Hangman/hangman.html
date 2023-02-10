@@ -1,0 +1,219 @@
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://unpkg.com/vue-select@latest"></script>
+<link rel="stylesheet" href="https://unpkg.com/vue-select@latest/dist/vue-select.css">
+<script src="wordlist.js"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hangman</title>
+
+    <style>
+        #message_area {
+            float: left;
+            float: left;
+            width: 33%;
+        }
+
+        #input_area {
+            float: left;
+            width: 33%;
+        }
+
+        #result_area {
+            float: left;
+            width: 33%;
+        }
+
+        #time {
+
+        }
+    </style>
+</head>
+<body>
+<h1>Hangman</h1>
+<div id="app">
+    <div id="message_area">
+        <h2>Message</h2>
+        <h3>{{message}}</h3>
+        <h3 id="time">time: {{time}}s</h3>
+        <h3>highscore: {{highscore}}</h3>
+    </div>
+    <div id="input_area">
+        <h2>Input</h2>
+        <div id="button_container"></div>
+        <button @click="restart()">restart</button>
+    </div>
+    <div id="result_area">
+        <h2>Results</h2>
+        <h3>Remaining tries: {{tries}}</h3>
+        <h4>{{word}}</h4>
+        <img v-bind:src="img">
+    </div>
+
+</div>
+</body>
+</html>
+
+<!---->
+<script>
+    initLetters();
+    const initMessage = "Please click the restart-button to start."
+    const resetMessage = "Click the restart-button to restart."
+    const chooseLetterMessage = "Please choose a Letter.";
+    let pictureNumbers = 10;
+    let clickedKey
+    window.addEventListener('keydown', e => {
+        clickedKey = e
+    });
+
+    function initLetters() {
+        let html = '';
+        let letter;
+        for (let i = 0; i < 26; i++) {
+            letter = String.fromCharCode(i + 65)
+            let temp = '<button id=\"' + letter + '\" @click="setLetter(\'' + letter + '\')">' + letter + '</button>';
+            if ((i + 1) % 10 == 0)
+                temp += "<br>"
+            html += temp;
+        }
+        document.getElementById("button_container").innerHTML = html;
+    }
+
+    const {createApp} = Vue
+    createApp({
+        data() {
+            return {
+                img: "./hangman/0.jpg",
+                message: initMessage,
+                tries: pictureNumbers,
+                time: 0,
+                words: words,
+                chosenWord: "",
+                word: "_",
+                wordArray: [],
+                knowingAmount: 0,
+                number: 0,
+                startTime: 0,
+                timeInterval: null,
+                highscore: 0,
+                id: {
+                    "word": "word",
+                    "won": "won",
+                    "highscore": "highscore",
+                    "tries": "pictureNumber-tries",
+                    "time": "time",
+                    "cheatUsed": "true/false"
+                },
+                keyInterval: setInterval(this.keyCheck, 100)
+            }
+        },
+        methods:
+            {
+                updateTime() {
+                    this.time = parseInt(((new Date).getTime() - this.startTime) / 1000);
+                },
+                restart() {
+                    this.chosenWord = words[parseInt(Math.random() * this.words.length)]
+                    this.chosenWordArray = this.chosenWord.split("")
+                    this.wordArray = new Array(this.chosenWordArray.length)
+                    this.word = ""
+                    for (let i = 0; i < this.wordArray.length; i++)
+                        this.wordArray[i] = i == 0 ? this.chosenWordArray[0] : "_";
+                    this.reprintWord();
+                    this.reactivateButtons();
+                    this.tries = pictureNumbers;
+                    this.img = "./hangman/0.jpg";
+                    this.number = 0;
+                    this.startTime = (new Date).getTime()
+                    this.timeInterval = setInterval(this.updateTime, 1000);
+                    this.highscore = 0;
+                },
+                check() {
+                    if (this.wordArray.length == this.wordArray.filter(x => {
+                        return x != "_"
+                    }).length)
+                        this.right();
+                },
+                wrong() {
+                    if (this.number < pictureNumbers) {
+                        this.number++;
+                        this.tries--;
+                        this.img = "./hangman/" + this.number + ".jpg";
+                    }
+                    if (this.number == pictureNumbers) {
+                        this.message = "You lost. The word is: " + this.chosenWord;
+                        this.deactivateButtons();
+                        this.stop(false);
+                    }
+                },
+                right() {
+                    this.message = "You found the word: " + this.chosenWord;
+                    this.stop(true);
+                },
+                stop(won) {
+                    clearInterval(this.timeInterval);
+                    this.highscore += 5 * this.chosenWordArray.length / this.time;
+                    this.highscore = parseInt(this.highscore);
+                    console.log(localStorage.key.length);
+                    if (!("0-id" in localStorage))
+                        localStorage.setItem("0-id", JSON.stringify(this.id));
+                    temp = {
+                        "word": this.chosenWord,
+                        "won": won,
+                        "highscore": this.highscore,
+                        "tries": "" + (pictureNumbers - this.tries),
+                        "time": this.time,
+                        "cheatUsed": "true/false"
+                    }
+                    localStorage.setItem(localStorage.length, JSON.stringify(temp));
+                },
+                reactivateButtons() {
+                    for (let i = 0; i < 26; i++) {
+                        let letter = String.fromCharCode(i + 65)
+                        document.getElementById(letter).disabled = "";
+                    }
+                },
+                deactivateButtons() {
+                    for (let i = 0; i < 26; i++) {
+                        let letter = String.fromCharCode(i + 65)
+                        document.getElementById(letter).disabled = "true";
+                    }
+                },
+                setLetter(letter) {
+                    if (this.chosenWordArray == undefined)
+                        return
+                    document.getElementById(letter).disabled = "true";
+                    let wrong = true;
+                    for (let i = 0; i < this.chosenWordArray.length; i++) {
+                        if (letter.toLowerCase() == this.chosenWordArray[i]) {
+                            this.wordArray[i] = this.chosenWordArray[i]
+                            wrong = false;
+                        }
+
+                    }
+                    if (wrong)
+                        this.wrong();
+                    else
+                        this.highscore += 10;
+                    this.reprintWord();
+                    this.check();
+                },
+                reprintWord() {
+                    this.word = "";
+                    for (let i = 0; i < this.wordArray.length; i++)
+                        this.word += this.wordArray[i] + " "
+                },
+                cheat() {
+                    this.message = this.chosenWord;
+                    this.highscore -= 20;
+                },
+                keyCheck() {
+                    if (clickedKey == 60)
+                        this.cheat();
+                }
+            }
+    }).mount('#app')
+
+</script>
