@@ -22,32 +22,34 @@ api = Api(app)  # Die Flask API
 
 
 @dataclass  # Diese ermoeglicht das Schreiben als JSON mit jsonify
-class Catalog(Base):
-    __tablename__ = 'card'  # Abbildung auf diese Tabelle
+class CatalogProgress(Base):
+    __tablename__ = 'progress'  # Abbildung auf diese Tabelle
     id: int
+    card_id: int
     description: str
-    thumb: str
+    datetime: DateTime
 
     id = Column(Integer, primary_key=True)
+    card_id = Column(Integer)
     description = Column(Text)
-    thumb = Column(Text)
+    datetime = Column(DateTime)
 
 
-class CatalogREST(Resource):
+class CatalogProgressREST(Resource):
     def get(self, id):
-        info = Catalog.query.get(id)
+        info = CatalogProgress.query.get(id)
         return jsonify(info)
 
     def put(self, id):
         data = request.get_json(force=True)['info']
-        print(data)
-        info = Catalog(id=data['id'], description=data['description'], thumb=data['thumb'])
+        info = CatalogProgress(id=data['id'], card_id=data['card_id'], description=data['description'],
+                               datetime=data['datetime'])
         db_session.add(info)
         db_session.flush()
         return jsonify(info)
 
     def delete(self, id):
-        info = Catalog.query.get(id)
+        info = CatalogProgress.query.get(id)
         if info is None:
             return jsonify({'message': 'object with id %d does not exist' % id})
         db_session.delete(info)
@@ -56,7 +58,7 @@ class CatalogREST(Resource):
 
     def patch(self, id):
         print(request.json)
-        info = Catalog.query.get(id)
+        info = CatalogProgress.query.get(id)
         if info is None:
             return jsonify({'message': 'object with id %d does not exist' % id})
         description = request.json['params']['description']
@@ -67,11 +69,16 @@ class CatalogREST(Resource):
 
     @app.route('/cat-search/<q>')
     def cat_search(q):
-        infos = Catalog.query.filter(Catalog.description.contains(q)).all()
+        infos = CatalogProgress.query.filter(CatalogProgress.description.contains(q)).all()
+        return jsonify(infos)
+
+    @app.route('/card-search/<q>')
+    def card_id_search(q):
+        infos = CatalogProgress.query.filter(CatalogProgress.card_id.contains(q)).all()
         return jsonify(infos)
 
 
-api.add_resource(CatalogREST, '/cat-item/<int:id>')
+api.add_resource(CatalogProgressREST, '/card-item/<int:id>')
 
 
 @app.teardown_appcontext
@@ -81,4 +88,4 @@ def shutdown_session(exception=None):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5002)
