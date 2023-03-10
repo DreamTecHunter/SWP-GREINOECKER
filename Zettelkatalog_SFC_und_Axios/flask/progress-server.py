@@ -1,3 +1,5 @@
+import datetime
+
 from flask import Flask, request, jsonify
 from sqlalchemy import Column, Integer, Text, Float, DateTime, create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -41,9 +43,9 @@ class CatalogProgressREST(Resource):
         return jsonify(info)
 
     def put(self, id):
-        data = request.get_json(force=True)['info']
-        info = CatalogProgress(id=data['id'], card_id=data['card_id'], description=data['description'],
-                               datetime=data['datetime'])
+        data = request.get_json(force=True)['params']
+        info = CatalogProgress(card_id=id, description=data['description'], datetime=datetime.datetime.now())
+        print(info)
         db_session.add(info)
         db_session.flush()
         return jsonify(info)

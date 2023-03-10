@@ -39,6 +39,7 @@ class CatalogCardREST(Resource):
         return jsonify(info)
 
     def put(self, id):
+        print(request.get_json())
         data = request.get_json(force=True)['info']
         print(data)
         info = CatalogCard(id=data['id'], description=data['description'], thumb=data['thumb'])

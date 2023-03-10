@@ -97,6 +97,7 @@ export default {
           const responds = await axios.put(`http://127.0.0.1:5002/card-item/${this.id}`, {
             params: {
               description: this.description,
+              datetime: Date.now().toString()
             }
           });
           console.log("Patch " + responds.statusText)
