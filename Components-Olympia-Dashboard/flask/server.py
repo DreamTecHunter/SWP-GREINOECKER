@@ -70,6 +70,12 @@ def event_by_noc(noc):
     return jsonify(infos)
 
 
+@app.route('/get_columns')
+def get_columns():
+    infos = [c.key for c in AthleteEvents.__table__.columns]
+    return jsonify(infos)
+
+
 @app.route('/regions')
 def regions():
     infos = NocRegions.query.all()
